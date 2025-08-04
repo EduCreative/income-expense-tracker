@@ -1,0 +1,120 @@
+import React, { useEffect, useState } from "react";
+import { collection, query, onSnapshot } from "firebase/firestore";
+import { db } from "../firebase";
+import { useAuth } from "../context/AuthContext";
+
+export default function MonthlySummary() {
+  const { userData } = useAuth();
+  const [transactions, setTransactions] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  useEffect(() => {
+    if (!userData?.familyID) return;
+
+    const q = query(
+      collection(db, "families", userData.familyID, "transactions")
+    );
+
+    const unsub = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTransactions(items);
+    });
+
+    return () => unsub();
+  }, [userData?.familyID]);
+
+  const formatDate = (ts) => {
+    if (!ts || !ts.seconds) return null;
+    return new Date(ts.seconds * 1000);
+  };
+
+  const uniqueCategories = [
+    ...new Set(transactions.map((tx) => tx.category || "Uncategorized")),
+  ];
+
+  const filtered = transactions.filter((tx) => {
+    const date = formatDate(tx.createdAt);
+    if (!date) return false;
+
+    const matchesMonth = selectedMonth
+      ? date.toISOString().slice(0, 7) === selectedMonth
+      : true;
+
+    const matchesCategory =
+      selectedCategory === "all" || tx.category === selectedCategory;
+
+    return matchesMonth && matchesCategory;
+  });
+
+  const totalIncome = filtered
+    .filter((tx) => tx.type === "income")
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const totalExpense = filtered
+    .filter((tx) => tx.type === "expense")
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
+  const balance = totalIncome - totalExpense;
+
+  const formatAmount = (amount) =>
+    "Rs. " + amount.toLocaleString("en-PK", { minimumFractionDigits: 0 });
+
+  return (
+    <div className="bg-white rounded shadow p-4 mt-4">
+      <h3 className="text-xl font-bold mb-4">Monthly Summary</h3>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div>
+          <label className="block font-semibold">Select Month:</label>
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="border p-2 rounded"
+          />
+        </div>
+
+        <div>
+          <label className="block font-semibold">Select Category:</label>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="border p-2 rounded"
+          >
+            <option value="all">All</option>
+            {uniqueCategories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+        <div className="bg-green-100 p-4 rounded">
+          <h4 className="text-lg font-semibold">Income</h4>
+          <p className="text-xl font-bold text-green-800">
+            {formatAmount(totalIncome)}
+          </p>
+        </div>
+        <div className="bg-red-100 p-4 rounded">
+          <h4 className="text-lg font-semibold">Expense</h4>
+          <p className="text-xl font-bold text-red-800">
+            {formatAmount(totalExpense)}
+          </p>
+        </div>
+        <div className="bg-blue-100 p-4 rounded">
+          <h4 className="text-lg font-semibold">Balance</h4>
+          <p className="text-xl font-bold text-blue-800">
+            {formatAmount(balance)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

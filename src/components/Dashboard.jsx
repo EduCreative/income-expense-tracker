@@ -1,0 +1,39 @@
+import React from "react";
+import IncomeForm from "./IncomeForm";
+import ExpenseForm from "./ExpenseForm";
+import TransactionTable from "./TransactionTable";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
+import MonthlySummary from "./MonthlySummary";
+import Charts from "./Charts";
+import BackupRestore from "./BackupRestore";
+
+export default function Dashboard() {
+  return (
+    <div className="flex flex-col h-screen">
+      <Header />
+
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <div className="w-64 bg-gray-100 p-4 hidden md:block">
+          <Sidebar />
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 bg-white dark:bg-gray-900 p-4 overflow-auto">
+          <MonthlySummary />
+          <Charts />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <IncomeForm />
+            <ExpenseForm />
+          </div>
+
+          <TransactionTable />
+
+          <BackupRestore />
+        </div>
+      </div>
+    </div>
+  );
+}

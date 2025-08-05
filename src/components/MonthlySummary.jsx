@@ -1,13 +1,35 @@
 import React, { useEffect, useState } from "react";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  Title,
+} from "chart.js";
+import { Pie, Bar, Line } from "react-chartjs-2";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+
+ChartJS.register(
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  Title
+);
 
 export default function MonthlySummary() {
   const { userData } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [chartType, setChartType] = useState("pie");
 
   useEffect(() => {
     if (!userData?.familyID) return;
@@ -63,6 +85,27 @@ export default function MonthlySummary() {
   const formatAmount = (amount) =>
     "Rs. " + amount.toLocaleString("en-PK", { minimumFractionDigits: 0 });
 
+  const chartData = {
+    labels: ["Income", "Expense", "Balance"],
+    datasets: [
+      {
+        label: "Rs.",
+        data: [totalIncome, totalExpense, balance],
+        backgroundColor: ["#4CAF50", "#F44336", "#2196F3"],
+        borderColor: ["#388E3C", "#D32F2F", "#1976D2"],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: true, text: "Monthly Financial Summary" },
+    },
+  };
+
   return (
     <div className="bg-white rounded shadow p-4 mt-4">
       <h3 className="text-xl font-bold mb-4">Monthly Summary</h3>
@@ -93,9 +136,22 @@ export default function MonthlySummary() {
             ))}
           </select>
         </div>
+
+        <div>
+          <label className="block font-semibold">Chart Type:</label>
+          <select
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value)}
+            className="border p-2 rounded"
+          >
+            <option value="pie">Pie</option>
+            <option value="bar">Bar</option>
+            <option value="line">Line</option>
+          </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
         <div className="bg-green-100 p-4 rounded">
           <h4 className="text-lg font-semibold">Income</h4>
           <p className="text-xl font-bold text-green-800">
@@ -114,6 +170,14 @@ export default function MonthlySummary() {
             {formatAmount(balance)}
           </p>
         </div>
+      </div>
+
+      <div className="p-2 bg-gray-50 dark:bg-gray-800 rounded">
+        {chartType === "pie" && <Pie data={chartData} options={chartOptions} />}
+        {chartType === "bar" && <Bar data={chartData} options={chartOptions} />}
+        {chartType === "line" && (
+          <Line data={chartData} options={chartOptions} />
+        )}
       </div>
     </div>
   );

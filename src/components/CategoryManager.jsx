@@ -103,6 +103,13 @@ export default function CategoryManager() {
 
   return (
     <div className="max-w-3xl mx-auto p-4">
+      <button
+        onClick={() => (window.location.href = "/dashboard")}
+        className="mb-4 text-blue-600 underline hover:text-blue-800"
+      >
+        ← Back to Dashboard
+      </button>
+
       <h2 className="text-2xl font-bold mb-4">Manage Categories</h2>
 
       <form

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../firebase";
 import {
   collection,
   query,
@@ -7,44 +6,53 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
+  getDocs,
 } from "firebase/firestore";
+import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
-import EditTransactionModal from "./EditTransactionModal";
 
 export default function TransactionTable() {
   const { currentUser, userData } = useAuth();
   const [transactions, setTransactions] = useState([]);
-  const [editingTx, setEditingTx] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     if (!userData?.familyID) return;
 
+    // Fetch categories
+    const fetchCategories = async () => {
+      const catSnap = await getDocs(
+        collection(db, "families", userData.familyID, "categories")
+      );
+      const catList = catSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setCategories(catList);
+    };
+
+    fetchCategories();
+
+    // Listen for transactions
     const q = query(
       collection(db, "families", userData.familyID, "transactions"),
       orderBy("createdAt", "desc")
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setTransactions(data);
     });
 
     return () => unsub();
   }, [userData?.familyID]);
 
-  const formatDate = (dateField) => {
-    if (!dateField) return "N/A";
-    const dateObj =
-      typeof dateField.toDate === "function"
-        ? dateField.toDate()
-        : new Date(dateField);
-    const day = dateObj.getDate().toString().padStart(2, "0");
-    const month = dateObj.toLocaleString("default", { month: "short" });
-    const year = dateObj.getFullYear();
+  const formatDate = (timestamp) => {
+    if (!timestamp?.toDate) return "N/A";
+    const date = timestamp.toDate();
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = date.toLocaleString("default", { month: "short" });
+    const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
 
@@ -67,6 +75,16 @@ export default function TransactionTable() {
     }
   };
 
+  // Match category name and type to fetch icon + color
+  const getCategoryDetails = (type, name) => {
+    return (
+      categories.find((cat) => cat.name === name && cat.type === type) || {
+        icon: "❓",
+        color: "bg-gray-300",
+      }
+    );
+  };
+
   return (
     <div className="overflow-x-auto mt-4">
       <h3 className="text-lg font-bold mb-2">All Transactions</h3>
@@ -74,40 +92,42 @@ export default function TransactionTable() {
         <thead>
           <tr className="bg-gray-100 text-left text-sm">
             <th className="p-2">Type</th>
+            <th className="p-2">Title</th>
             <th className="p-2">Amount</th>
             <th className="p-2">Category</th>
-            <th className="p-2">Description</th>
             <th className="p-2">Date</th>
             <th className="p-2">Action</th>
           </tr>
         </thead>
         <tbody>
-          {transactions.map((tx) => (
-            <tr key={tx.id} className="border-b text-sm">
-              <td className="p-2 capitalize">{tx.type}</td>
-              <td className="p-2">{formatCurrency(tx.amount)}</td>
-              <td className="p-2">{tx.category || "N/A"}</td>
-              <td className="p-2">{tx.description || "-"}</td>
-              <td className="p-2">{formatDate(tx.date)}</td>
-              <td className="p-2">
-                <button
-                  onClick={() => {
-                    setEditingTx(tx);
-                    setShowEditModal(true);
-                  }}
-                  className="text-blue-500 hover:underline mr-2"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(tx.id)}
-                  className="text-red-500 hover:underline"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
+          {transactions.map((tx) => {
+            const cat = getCategoryDetails(tx.type, tx.category);
+
+            return (
+              <tr key={tx.id} className="border-b text-sm">
+                <td className="p-2 capitalize">{tx.type}</td>
+                <td className="p-2">{tx.title}</td>
+                <td className="p-2">{formatCurrency(tx.amount)}</td>
+                <td className="p-2">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-white text-xs ${cat.color}`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{tx.category || "N/A"}</span>
+                  </span>
+                </td>
+                <td className="p-2">{formatDate(tx.createdAt)}</td>
+                <td className="p-2">
+                  <button
+                    onClick={() => handleDelete(tx.id)}
+                    className="text-red-500 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
 
           {transactions.length === 0 && (
             <tr>
@@ -118,12 +138,6 @@ export default function TransactionTable() {
           )}
         </tbody>
       </table>
-      <EditTransactionModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        transaction={editingTx}
-        familyID={userData.familyID}
-      />
     </div>
   );
 }

@@ -9,13 +9,10 @@ import {
   doc,
 } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
-import EditTransactionModal from "./EditTransactionModal";
 
 export default function TransactionTable() {
   const { currentUser, userData } = useAuth();
   const [transactions, setTransactions] = useState([]);
-  const [editingTx, setEditingTx] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (!userData?.familyID) return;
@@ -36,15 +33,12 @@ export default function TransactionTable() {
     return () => unsub();
   }, [userData?.familyID]);
 
-  const formatDate = (dateField) => {
-    if (!dateField) return "N/A";
-    const dateObj =
-      typeof dateField.toDate === "function"
-        ? dateField.toDate()
-        : new Date(dateField);
-    const day = dateObj.getDate().toString().padStart(2, "0");
-    const month = dateObj.toLocaleString("default", { month: "short" });
-    const year = dateObj.getFullYear();
+  const formatDate = (timestamp) => {
+    if (!timestamp?.toDate) return "N/A";
+    const date = timestamp.toDate();
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = date.toLocaleString("default", { month: "short" });
+    const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   };
 
@@ -74,9 +68,9 @@ export default function TransactionTable() {
         <thead>
           <tr className="bg-gray-100 text-left text-sm">
             <th className="p-2">Type</th>
+            <th className="p-2">Title</th>
             <th className="p-2">Amount</th>
             <th className="p-2">Category</th>
-            <th className="p-2">Description</th>
             <th className="p-2">Date</th>
             <th className="p-2">Action</th>
           </tr>
@@ -85,26 +79,18 @@ export default function TransactionTable() {
           {transactions.map((tx) => (
             <tr key={tx.id} className="border-b text-sm">
               <td className="p-2 capitalize">{tx.type}</td>
+              <td className="p-2">{tx.title}</td>
               <td className="p-2">{formatCurrency(tx.amount)}</td>
               <td className="p-2">{tx.category || "N/A"}</td>
-              <td className="p-2">{tx.description || "-"}</td>
-              <td className="p-2">{formatDate(tx.date)}</td>
+              <td className="p-2">{formatDate(tx.createdAt)}</td>
               <td className="p-2">
-                <button
-                  onClick={() => {
-                    setEditingTx(tx);
-                    setShowEditModal(true);
-                  }}
-                  className="text-blue-500 hover:underline mr-2"
-                >
-                  Edit
-                </button>
                 <button
                   onClick={() => handleDelete(tx.id)}
                   className="text-red-500 hover:underline"
                 >
                   Delete
                 </button>
+                {/* You can add edit logic here */}
               </td>
             </tr>
           ))}
@@ -118,12 +104,6 @@ export default function TransactionTable() {
           )}
         </tbody>
       </table>
-      <EditTransactionModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        transaction={editingTx}
-        familyID={userData.familyID}
-      />
     </div>
   );
 }

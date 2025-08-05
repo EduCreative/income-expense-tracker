@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import CategoryManager from "./components/CategoryManager";
 
 import "./index.css";
 
@@ -33,6 +34,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               </ProtectedRoute>
             }
           />
+          <Route path="/categories" element={<CategoryManager />} />
         </Routes>
       </ThemeProvider>
     </AuthProvider>

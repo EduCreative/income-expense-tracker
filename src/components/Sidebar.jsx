@@ -8,6 +8,12 @@ export default function Sidebar() {
         <li className="hover:underline cursor-pointer">Dashboard</li>
         <li className="hover:underline cursor-pointer">Add Income</li>
         <li className="hover:underline cursor-pointer">Add Expense</li>
+        <li>
+          <a href="/categories" className="hover:underline">
+            Manage Categories
+          </a>
+        </li>
+
         <li className="hover:underline cursor-pointer">Reports</li>
         <li className="hover:underline cursor-pointer">Settings</li>
       </ul>

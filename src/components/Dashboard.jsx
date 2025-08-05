@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 import MonthlySummary from "./MonthlySummary";
 import Charts from "./Charts";
 import BackupRestore from "./BackupRestore";
+import DailyChart from "./DailyChart";
 
 export default function Dashboard() {
   return (
@@ -23,6 +24,9 @@ export default function Dashboard() {
         <div className="flex-1 bg-white dark:bg-gray-900 p-4 overflow-auto">
           <MonthlySummary />
           <Charts />
+          <DailyChart />
+
+          {/* Forms and Tables */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <IncomeForm />

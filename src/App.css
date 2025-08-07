@@ -7,6 +7,18 @@
   pointer-events: none;
 }
 
+.react-calendar {
+  width: 100%;
+  max-width: 100%;
+  background: white;
+  border: none;
+  font-family: inherit;
+  line-height: 1.125em;
+}
+.react-calendar__tile--now {
+  background: #e0f2fe !important;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;

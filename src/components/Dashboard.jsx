@@ -8,6 +8,8 @@ import MonthlySummary from "./MonthlySummary";
 import Charts from "./Charts";
 import BackupRestore from "./BackupRestore";
 import DailyChart from "./DailyChart";
+import CalendarView from "./CalendarView";
+
 
 export default function Dashboard() {
   return (
@@ -25,16 +27,13 @@ export default function Dashboard() {
           <MonthlySummary />
           <Charts />
           <DailyChart />
-
           {/* Forms and Tables */}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <IncomeForm />
             <ExpenseForm />
           </div>
-
           <TransactionTable />
-
+          <CalendarView />;
           <BackupRestore />
         </div>
       </div>

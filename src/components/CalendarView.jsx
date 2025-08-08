@@ -5,13 +5,11 @@ import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 import dayjs from "dayjs";
-import MonthlySummary2 from "./MonthlySummary2";
 
 export default function CalendarView() {
   const { userData } = useAuth();
   const [expensesByDate, setExpensesByDate] = useState({});
   const [value, setValue] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date()); // ✅ FIXED
 
   useEffect(() => {
     if (!userData?.familyID) return;
@@ -59,7 +57,6 @@ export default function CalendarView() {
         calendarType="gregory"
         locale="en-GB"
       />
-      <MonthlySummary2 selectedDate={selectedDate} />
     </div>
   );
 }

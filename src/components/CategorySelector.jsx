@@ -18,8 +18,6 @@ export default function CategorySelector({ type, value, onChange }) {
   const [newCategory, setNewCategory] = useState("");
 
   useEffect(() => {
-    console.log("userData:", userData); // <-- Add this line
-
     if (!userData?.familyID) return;
 
     const q = query(
@@ -43,7 +41,7 @@ export default function CategorySelector({ type, value, onChange }) {
     if (!newCategory.trim()) return;
 
     try {
-      const docRef = await addDoc(
+      await addDoc(
         collection(db, "families", userData.familyID, "categories"),
         {
           type,
@@ -52,7 +50,6 @@ export default function CategorySelector({ type, value, onChange }) {
         }
       );
       setNewCategory("");
-      onChange(newCategory.trim()); // auto-select newly added category
     } catch (err) {
       alert("Failed to add category: " + err.message);
     }
@@ -62,19 +59,19 @@ export default function CategorySelector({ type, value, onChange }) {
     const confirm = window.confirm(`Delete category "${categoryName}"?`);
     if (!confirm) return;
 
+    // Check if used in transactions
+    const txQuery = query(
+      collection(db, "families", userData.familyID, "transactions"),
+      where("category", "==", categoryName),
+      where("type", "==", type)
+    );
+    const txSnap = await getDocs(txQuery);
+    if (!txSnap.empty) {
+      alert("This category is in use and cannot be deleted.");
+      return;
+    }
+
     try {
-      const txQuery = query(
-        collection(db, "families", userData.familyID, "transactions"),
-        where("category", "==", categoryName),
-        where("type", "==", type)
-      );
-
-      const txSnap = await getDocs(txQuery);
-      if (!txSnap.empty) {
-        alert("This category is in use and cannot be deleted.");
-        return;
-      }
-
       await deleteDoc(
         doc(db, "families", userData.familyID, "categories", categoryId)
       );
@@ -91,22 +88,20 @@ export default function CategorySelector({ type, value, onChange }) {
 
       {/* Select Dropdown */}
       <select
-        value={categories.some((cat) => cat.name === value) ? value : ""}
+        value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border p-2 w-full mb-2 rounded"
+        className="border p-2 w-full rounded mb-2"
       >
-        <option value="" disabled>
-          Select Category
-        </option>
+        <option value="">Select Category</option>
         {categories.map((cat) => (
           <option key={cat.id} value={cat.name}>
-            {cat.icon || "❓"} {cat.name}
+            {cat.name}
           </option>
         ))}
       </select>
 
       {/* Add Category */}
-      <div className="flex gap-2 mb-2">
+      {/*<div className="flex gap-2 mb-2">
         <input
           type="text"
           placeholder={`Add new ${type} category`}
@@ -121,10 +116,11 @@ export default function CategorySelector({ type, value, onChange }) {
         >
           Add
         </button>
-      </div>
+      </div> */}
 
       {/* List + Delete Option */}
-      <ul className="space-y-1 text-sm">
+
+      {/* <ul className="space-y-1 text-sm">
         {categories.map((cat) => (
           <li
             key={cat.id}
@@ -142,7 +138,7 @@ export default function CategorySelector({ type, value, onChange }) {
             )}
           </li>
         ))}
-      </ul>
+      </ul> */}
     </div>
   );
 }

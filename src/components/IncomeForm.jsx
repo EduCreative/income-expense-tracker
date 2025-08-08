@@ -8,7 +8,7 @@ export default function IncomeForm() {
   const { currentUser, userData } = useAuth();
 
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("Salary");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(() => {
     const today = new Date();

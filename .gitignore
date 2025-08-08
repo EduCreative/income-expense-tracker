@@ -4,8 +4,9 @@ node_modules
 dist
 firebase-debug.log
 .env
-serviceAccountKey.json
 
+# Export Firebase service account key
+/firestore-export/serviceAccountKey.json
 
 # dependencies
 /node_modules

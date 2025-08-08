@@ -4,6 +4,7 @@ node_modules
 dist
 firebase-debug.log
 .env
+serviceAccountKey.json
 
 
 # dependencies

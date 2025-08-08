@@ -16,7 +16,7 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("owner"); // default to owner
+  const [role, setRole] = useState("Owner"); // default to owner
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -30,32 +30,70 @@ export default function Signup() {
       );
       const user = userCredential.user;
 
-      let familyId;
+      let familyID;
 
-      if (role === "owner") {
+      if (role === "Owner") {
         // Step 2: Create new family in Firestore
         const familyRef = await addDoc(collection(db, "families"), {
           ownerId: user.uid,
           createdAt: serverTimestamp(),
         });
-        familyId = familyRef.id;
-      } else {
-        // Step 3: Read familyId from URL for member
-        const urlParams = new URLSearchParams(window.location.search);
-        familyId = urlParams.get("familyId");
+        familyID = familyRef.id;
 
-        if (!familyId) {
+        // Step 3: Add default categories
+        const defaultIncomeCategories = ["Salary", "Other"];
+
+        const defaultExpenseCategories = [
+          "Food",
+          "Rent",
+          "Utilities",
+          "Grocery",
+          "Entertainment",
+          "Other",
+        ];
+
+        const categoryRef = collection(db, "families", familyID, "categories");
+        const COLORS = ["bg-red-500", "bg-orange-500", "bg-yellow-500"];
+        const EMOJIS = ["💰", "🍔", "🚗"];
+
+        for (let i = 0; i < defaultIncomeCategories.length; i++) {
+          await addDoc(categoryRef, {
+            name: defaultIncomeCategories[i],
+            type: "income",
+            createdBy: user.uid,
+            createdAt: serverTimestamp(),
+            color: COLORS[i % COLORS.length], // cycle through colors
+            icon: EMOJIS[i % EMOJIS.length], // cycle through emojis
+          });
+        }
+
+        for (let i = 0; i < defaultExpenseCategories.length; i++) {
+          await addDoc(categoryRef, {
+            name: defaultExpenseCategories[i],
+            type: "expense",
+            createdBy: user.uid,
+            createdAt: serverTimestamp(),
+            color: COLORS[i % COLORS.length],
+            icon: EMOJIS[i % EMOJIS.length],
+          });
+        }
+      } else {
+        // Step 4: Read familyID from URL for member
+        const urlParams = new URLSearchParams(window.location.search);
+        familyID = urlParams.get("familyID");
+
+        if (!familyID) {
           alert("Invalid invite link. Family ID missing.");
           return;
         }
       }
 
-      // Step 4: Save user profile in Firestore
+      // Step 5: Save user profile in Firestore
       await setDoc(doc(db, "users", user.uid), {
         email,
         name,
         role,
-        familyId,
+        familyID,
         createdAt: serverTimestamp(),
       });
 
@@ -107,7 +145,7 @@ export default function Signup() {
           onChange={(e) => setRole(e.target.value)}
           className="border p-2 mb-4 w-full rounded"
         >
-          <option value="owner">Family Owner</option>
+          <option value="Owner">Family Owner</option>
           <option value="member">Family Member</option>
         </select>
 

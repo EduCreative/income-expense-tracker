@@ -9,7 +9,7 @@ import Charts from "./Charts";
 import BackupRestore from "./BackupRestore";
 import DailyChart from "./DailyChart";
 import CalendarView from "./CalendarView";
-
+import MonthlySummary2 from "./MonthlySummary2";
 
 export default function Dashboard() {
   return (
@@ -33,7 +33,8 @@ export default function Dashboard() {
             <ExpenseForm />
           </div>
           <TransactionTable />
-          <CalendarView />;
+          <CalendarView />
+          {/* <MonthlySummary2 selectedDate={selectedDate} /> */}
           <BackupRestore />
         </div>
       </div>

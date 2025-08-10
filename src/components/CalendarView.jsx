@@ -23,9 +23,9 @@ export default function CalendarView() {
 
       snapshot.forEach((doc) => {
         const tx = doc.data();
-        if (tx.type !== "expense" || !tx.createdAt?.seconds) return;
+        if (tx.type !== "expense" || !tx.date?.seconds) return;
 
-        const date = dayjs.unix(tx.createdAt.seconds).format("YYYY-MM-DD");
+        const date = dayjs.unix(tx.date.seconds).format("YYYY-MM-DD");
         dailyTotals[date] = (dailyTotals[date] || 0) + tx.amount;
       });
 

@@ -1,138 +1,207 @@
 import React, { useEffect, useState } from "react";
+import { db } from "../firebase";
 import {
   collection,
   query,
-  orderBy,
   onSnapshot,
   deleteDoc,
   doc,
-  getDocs,
+  updateDoc,
+  orderBy,
 } from "firebase/firestore";
-import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
 
 export default function TransactionTable() {
-  const { currentUser, userData } = useAuth();
+  const { userData } = useAuth();
   const [transactions, setTransactions] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editedDescription, setEditedDescription] = useState("");
+  const [editedCategory, setEditedCategory] = useState("");
+  const [editedAmount, setEditedAmount] = useState("");
 
   useEffect(() => {
     if (!userData?.familyID) return;
 
-    // Fetch categories
-    const fetchCategories = async () => {
-      const catSnap = await getDocs(
-        collection(db, "families", userData.familyID, "categories")
-      );
-      const catList = catSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setCategories(catList);
-    };
-
-    fetchCategories();
-
-    // Listen for transactions
     const q = query(
       collection(db, "families", userData.familyID, "transactions"),
       orderBy("createdAt", "desc")
     );
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setTransactions(data);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTransactions(list);
     });
 
-    return () => unsub();
-  }, [userData?.familyID]);
+    return () => unsubscribe();
+  }, [userData]);
+
+  const formatAmount = (amt) => `Rs. ${Number(amt).toLocaleString("en-PK")}`;
 
   const formatDate = (timestamp) => {
-    if (!timestamp?.toDate) return "N/A";
-    const date = timestamp.toDate();
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = date.toLocaleString("default", { month: "short" });
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    try {
+      const date = timestamp?.toDate();
+      return date
+        ? date.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "N/A";
+    } catch {
+      return "N/A";
+    }
   };
 
-  const formatCurrency = (amount) =>
-    `Rs. ${amount?.toLocaleString("en-PK", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    })}`;
-
   const handleDelete = async (id) => {
-    const confirm = window.confirm("Are you sure you want to delete this?");
+    const confirm = window.confirm("Are you sure you want to delete?");
     if (!confirm) return;
 
     try {
       await deleteDoc(
         doc(db, "families", userData.familyID, "transactions", id)
       );
-    } catch (error) {
-      alert("Failed to delete: " + error.message);
+    } catch (err) {
+      alert("Delete failed: " + err.message);
     }
   };
 
-  // Match category name and type to fetch icon + color
-  const getCategoryDetails = (type, name) => {
-    return (
-      categories.find((cat) => cat.name === name && cat.type === type) || {
-        icon: "❓",
-        color: "bg-gray-300",
-      }
-    );
+  const handleEdit = (transaction) => {
+    setEditingId(transaction.id);
+    setEditedDescription(transaction.description);
+    setEditedCategory(transaction.category);
+    setEditedAmount(transaction.amount);
+  };
+
+  const handleUpdate = async (id) => {
+    try {
+      await updateDoc(
+        doc(db, "families", userData.familyID, "transactions", id),
+        {
+          description: editedDescription,
+          category: editedCategory,
+          amount: parseFloat(editedAmount),
+        }
+      );
+      setEditingId(null);
+    } catch (err) {
+      alert("Update failed: " + err.message);
+    }
   };
 
   return (
-    <div className="overflow-x-auto mt-4">
-      <h3 className="text-lg font-bold mb-2">All Transactions</h3>
-      <table className="min-w-full bg-white shadow rounded overflow-hidden">
+    <div className="mt-8 bg-white p-4 rounded shadow overflow-x-auto">
+      <h3 className="text-lg font-semibold mb-4">All Transactions</h3>
+      <table className="min-w-full table-auto text-sm">
         <thead>
-          <tr className="bg-gray-100 text-left text-sm">
-            <th className="p-2">Type</th>
-            <th className="p-2">Title</th>
-            <th className="p-2">Amount</th>
-            <th className="p-2">Category</th>
-            <th className="p-2">Date</th>
-            <th className="p-2">Action</th>
+          <tr className="bg-gray-200">
+            <th className="px-2 py-2 text-left">Type</th>
+            <th className="px-2 py-2 text-left">Description</th>
+            <th className="px-2 py-2 text-left">Category</th>
+            <th className="px-2 py-2 text-left">Amount</th>
+            <th className="px-2 py-2 text-left">Date</th>
+            <th className="px-2 py-2 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {transactions.map((tx) => {
-            const cat = getCategoryDetails(tx.type, tx.category);
-
-            return (
-              <tr key={tx.id} className="border-b text-sm">
-                <td className="p-2 capitalize">{tx.type}</td>
-                <td className="p-2">{tx.title}</td>
-                <td className="p-2">{formatCurrency(tx.amount)}</td>
-                <td className="p-2">
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-white text-xs ${cat.color}`}
-                  >
-                    <span>{cat.icon}</span>
-                    <span>{tx.category || "N/A"}</span>
-                  </span>
-                </td>
-                <td className="p-2">{formatDate(tx.createdAt)}</td>
-                <td className="p-2">
-                  <button
-                    onClick={() => handleDelete(tx.id)}
-                    className="text-red-500 hover:underline"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+          {transactions.map((txn) => (
+            <tr
+              key={txn.id}
+              className={`${
+                txn.type === "income" ? "bg-green-100" : "bg-red-100"
+              } hover:bg-gray-100 transition-colors`}
+            >
+              {/* className="mb-4 bg-green-50 p-4 rounded shadow" */}
+              <td className="px-4 py-2 capitalize text-xs font-bold text-white">
+                <span
+                  className={`px-2 py-1 rounded text-xs ${
+                    txn.type === "income"
+                      ? "mb-4 bg-green-500"
+                      : "mb-4 bg-red-500 p-4"
+                  }`}
+                >
+                  {/* <td className="px-2 py-2 capitalize"> */}
+                  {txn.type === "income" ? "Income" : "Expense"}
+                  {/* </td> */}
+                </span>
+              </td>
+              <td className="px-2 py-2">
+                {editingId === txn.id ? (
+                  <input
+                    value={editedDescription}
+                    onChange={(e) => setEditedDescription(e.target.value)}
+                    className="border rounded px-2 py-1 w-full"
+                  />
+                ) : (
+                  txn.description
+                )}
+              </td>
+              <td className="px-2 py-2">
+                {editingId === txn.id ? (
+                  <input
+                    value={editedCategory}
+                    onChange={(e) => setEditedCategory(e.target.value)}
+                    className="border rounded px-2 py-1 w-full"
+                  />
+                ) : (
+                  txn.category
+                )}
+              </td>
+              <td className="px-2 py-2">
+                {editingId === txn.id ? (
+                  <input
+                    type="number"
+                    value={editedAmount}
+                    onChange={(e) => setEditedAmount(e.target.value)}
+                    className="border rounded px-2 py-1 w-full"
+                  />
+                ) : (
+                  formatAmount(txn.amount)
+                )}
+              </td>
+              <td className="px-2 py-2">{formatDate(txn.date)}</td>
+              <td className="px-2 py-2 flex gap-2">
+                {editingId === txn.id ? (
+                  <>
+                    <button
+                      className="bg-green-500 text-white px-2 py-1 rounded"
+                      onClick={() => handleUpdate(txn.id)}
+                    >
+                      Save
+                    </button>
+                    <button
+                      className="bg-gray-400 text-white px-2 py-1 rounded"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="bg-blue-500 text-white px-2 py-1 rounded"
+                      onClick={() => handleEdit(txn)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="bg-red-500 text-white px-2 py-1 rounded"
+                      onClick={() => handleDelete(txn.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
 
           {transactions.length === 0 && (
             <tr>
-              <td colSpan="6" className="p-4 text-center text-gray-400">
-                No transactions yet.
+              <td colSpan="5" className="text-center py-4 text-gray-500">
+                No transactions found.
               </td>
             </tr>
           )}

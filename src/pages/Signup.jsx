@@ -39,6 +39,42 @@ export default function Signup() {
           createdAt: serverTimestamp(),
         });
         familyID = familyRef.id;
+
+        // Step 3: Add default categories
+        const defaultIncomeCategories = ["Salary", "Profit", "Bonus", "Other"];
+
+        const defaultExpenseCategories = [
+          "Food",
+          "Rent",
+          "Utilities",
+          "Grocery",
+          "Entertainment",
+          "Other",
+        ];
+
+        const categoryRef = collection(db, "families", familyID, "categories");
+
+        for (const cat of defaultIncomeCategories) {
+          await addDoc(categoryRef, {
+            color: "bg-green-500",
+            icon: "💰",
+            name: cat,
+            type: "income",
+            createdBy: user.uid,
+            createdAt: serverTimestamp(),
+          });
+        }
+
+        for (const cat of defaultExpenseCategories) {
+          await addDoc(categoryRef, {
+            color: "bg-red-500",
+            icon: "🛒",
+            name: cat,
+            type: "expense",
+            createdBy: user.uid,
+            createdAt: serverTimestamp(),
+          });
+        }
       } else {
         // Step 3: Read familyID from URL for member
         const urlParams = new URLSearchParams(window.location.search);

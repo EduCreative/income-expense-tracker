@@ -29,7 +29,7 @@ export default function Login() {
             className="w-16 h-16 mb-2"
           />
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-            Family Tracker
+            Profit Tracker App
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Sign in to manage income & expenses

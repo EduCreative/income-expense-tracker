@@ -92,11 +92,11 @@ export default function TransactionTable() {
   };
 
   return (
-    <div className="mt-8 bg-white p-4 rounded shadow overflow-x-auto">
+    <div className="max-h-64 overflow-y-auto mt-8 bg-white p-4 rounded shadow overflow-x-auto dark:bg-gray-800 rounded">
       <h3 className="text-lg font-semibold mb-4">All Transactions</h3>
-      <table className="min-w-full table-auto text-sm">
+      <table className="min-w-full table-auto text-sm dark:bg-gray-800 rounded">
         <thead>
-          <tr className="bg-gray-200">
+          <tr className="bg-gray-200 dark:bg-gray-600 rounded">
             <th className="px-2 py-2 text-left">Type</th>
             <th className="px-2 py-2 text-left">Description</th>
             <th className="px-2 py-2 text-left">Category</th>
@@ -110,13 +110,15 @@ export default function TransactionTable() {
             <tr
               key={txn.id}
               className={`${
-                txn.type === "income" ? "bg-green-100" : "bg-red-100"
-              } hover:bg-gray-100 transition-colors`}
+                txn.type === "income"
+                  ? "bg-green-100 dark:bg-gray-400 rounded"
+                  : "bg-red-100 dark:bg-gray-600 rounded"
+              } hover:bg-gray-100 transition-colors `}
             >
               {/* className="mb-4 bg-green-50 p-4 rounded shadow" */}
-              <td className="px-4 py-2 capitalize text-xs font-bold text-white">
+              <td className="px-4 py-2 capitalize text-xs font-bold text-yellow">
                 <span
-                  className={`px-2 py-1 rounded text-xs ${
+                  className={`px-2 py-1 rounded text-xs-yellow ${
                     txn.type === "income"
                       ? "mb-4 bg-green-500"
                       : "mb-4 bg-red-500 p-4"

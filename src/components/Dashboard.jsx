@@ -17,7 +17,7 @@ export default function Dashboard() {
 
       <div className="flex flex-1">
         {/* Sidebar */}
-        <div className="w-64 bg-gray-100 p-4 hidden md:block">
+        <div className="w-64 bg-gray-100 p-4 hidden md:block dark:bg-gray-900 rounded">
           <Sidebar />
         </div>
 

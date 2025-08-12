@@ -107,26 +107,30 @@ export default function MonthlySummary() {
   };
 
   return (
-    <div className="bg-white rounded shadow p-4 mt-4">
+    <div className="bg-white rounded shadow p-4 mt-4 dark:bg-gray-800 rounded">
       <h3 className="text-xl font-bold mb-4">Monthly Summary</h3>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
+      <div className="flex flex-col md:flex-row gap-4 mb-4 dark:bg-gray-800 rounded">
         <div>
-          <label className="block font-semibold">Select Month:</label>
+          <label className="block font-semibold dark:bg-gray-800 rounded">
+            Select Month:
+          </label>
           <input
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded dark:bg-gray-800 rounded"
           />
         </div>
 
         <div>
-          <label className="block font-semibold">Select Category:</label>
+          <label className="block font-semibold dark:bg-gray-800 rounded">
+            Select Category:
+          </label>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded dark:bg-gray-800 rounded"
           >
             <option value="all">All</option>
             {uniqueCategories.map((cat) => (
@@ -138,11 +142,13 @@ export default function MonthlySummary() {
         </div>
 
         <div>
-          <label className="block font-semibold">Chart Type:</label>
+          <label className="block font-semibold dark:bg-gray-800 rounded">
+            Chart Type:
+          </label>
           <select
             value={chartType}
             onChange={(e) => setChartType(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded dark:bg-gray-800 rounded"
           >
             <option value="pie">Pie</option>
             <option value="bar">Bar</option>
@@ -151,20 +157,20 @@ export default function MonthlySummary() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6">
-        <div className="bg-green-100 p-4 rounded">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-6 dark:bg-gray-800 rounded">
+        <div className="bg-green-100 p-4 rounded dark:bg-gray-800 rounded">
           <h4 className="text-lg font-semibold">Income</h4>
           <p className="text-xl font-bold text-green-800">
             {formatAmount(totalIncome)}
           </p>
         </div>
-        <div className="bg-red-100 p-4 rounded">
+        <div className="bg-red-100 p-4 rounded dark:bg-gray-800 rounded">
           <h4 className="text-lg font-semibold">Expense</h4>
           <p className="text-xl font-bold text-red-800">
             {formatAmount(totalExpense)}
           </p>
         </div>
-        <div className="bg-blue-100 p-4 rounded">
+        <div className="bg-blue-100 p-4 rounded dark:bg-gray-800 rounded">
           <h4 className="text-lg font-semibold">Balance</h4>
           <p className="text-xl font-bold text-blue-800">
             {formatAmount(balance)}

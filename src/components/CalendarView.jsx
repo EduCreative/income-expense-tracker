@@ -40,20 +40,20 @@ export default function CalendarView() {
     const total = expensesByDate[key];
 
     return total ? (
-      <div className="text-xs text-red-600 mt-1 font-semibold">
+      <div className="text-xs text-red-600 mt-1 font-semibold dark:bg-gray-800 rounded">
         Rs. {total.toLocaleString("en-PK")}
       </div>
     ) : null;
   };
 
   return (
-    <div className="bg-white rounded shadow p-4 mt-4">
+    <div className="bg-white rounded shadow p-4 mt-4 dark:bg-gray-800 rounded">
       <h3 className="text-xl font-bold mb-4">📆 Calendar View (Expenses)</h3>
       <Calendar
         onChange={setValue}
         value={value}
         tileContent={tileContent}
-        className="mx-auto border-none"
+        className="mx-auto border-none dark:bg-gray-800 rounded"
         calendarType="gregory"
         locale="en-GB"
       />

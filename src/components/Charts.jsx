@@ -54,11 +54,15 @@ export default function Charts() {
             "#4CAF50",
             "#F44336",
             "#2196F3",
-            "#FFC107",
+            "#ad850eff",
             "#9C27B0",
             "#00BCD4",
-            "#FF9800",
+            "#fb9700ff",
             "#607D8B",
+            "#cf4c76ff",
+            "#FF7D8F",
+            "#117D8B",
+            "#ffff00ff",
           ],
         },
       ],
@@ -66,8 +70,8 @@ export default function Charts() {
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-6 mt-6">
-      <div className="bg-white p-4 rounded shadow">
+    <div className="grid md:grid-cols-2 gap-6 mt-6 dark:bg-gray-800 rounded">
+      <div className="bg-white p-4 rounded shadow dark:bg-gray-800 rounded">
         <h3 className="text-lg font-bold mb-2">Income by Category</h3>
         {Object.keys(categoryData.income).length > 0 ? (
           <Pie data={buildChartData(categoryData.income)} />
@@ -76,7 +80,7 @@ export default function Charts() {
         )}
       </div>
 
-      <div className="bg-white p-4 rounded shadow">
+      <div className="bg-white p-4 rounded shadow dark:bg-gray-800 rounded">
         <h3 className="text-lg font-bold mb-2">Expense by Category</h3>
         {Object.keys(categoryData.expense).length > 0 ? (
           <Pie data={buildChartData(categoryData.expense)} />

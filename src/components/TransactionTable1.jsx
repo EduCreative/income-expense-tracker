@@ -29,14 +29,14 @@ export default function TransactionTable() {
   }, [userData?.familyID]);
 
   return (
-    <div className="mt-8">
+    <div className="mt-8 dark:bg-gray-800 rounded">
       <h2 className="text-xl font-bold mb-4">All Transactions</h2>
 
       {transactions.length === 0 ? (
         <p className="text-gray-500">No transactions found.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border rounded shadow text-sm">
+        <div className="overflow-x-auto dark:bg-gray-800 rounded">
+          <table className="w-full border rounded shadow text-sm dark:bg-gray-800 rounded">
             <thead className="bg-gray-200 text-left">
               <tr>
                 <th className="p-2">Type</th>

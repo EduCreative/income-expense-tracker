@@ -47,7 +47,7 @@ export default function IncomeForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-4 bg-green-50 p-4 rounded shadow"
+      className="mb-4 bg-green-50 p-4 rounded shadow dark:bg-gray-800 rounded"
     >
       <h3 className="text-lg font-semibold mb-2">Add Income</h3>
 
@@ -56,7 +56,7 @@ export default function IncomeForm() {
         placeholder="Amount"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        className="border p-2 w-full mb-2 rounded"
+        className="border p-2 w-full mb-2 rounded dark:bg-gray-800 rounded"
         required
       />
 
@@ -79,14 +79,14 @@ export default function IncomeForm() {
         placeholder="Notes / Description"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="border p-2 w-full mb-2 rounded"
+        className="border p-2 w-full mb-2 rounded dark:bg-gray-800 rounded"
       />
 
       <input
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="border p-2 w-full mb-4 rounded"
+        className="border p-2 w-full mb-4 rounded dark:bg-gray-800 rounded"
         required
       />
 

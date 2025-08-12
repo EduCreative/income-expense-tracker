@@ -90,7 +90,7 @@ export default function CategorySelector({ type, value, onChange }) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border p-2 w-full rounded mb-2"
+        className="border p-2 w-full rounded mb-2 dark:bg-gray-800 rounded"
       >
         <option value="">Select Category</option>
         {categories.map((cat) => (

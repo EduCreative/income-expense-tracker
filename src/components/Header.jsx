@@ -11,6 +11,7 @@ export default function Header() {
   const navigate = useNavigate();
   const { userData } = useAuth();
   const { toggleTheme, theme } = useTheme();
+  const { dark, setDark } = useTheme();
 
   const [showQR, setShowQR] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -95,9 +96,11 @@ export default function Header() {
           </button>
         )}
 
-        <button title="Toggle Theme" onClick={toggleTheme} className="text-lg">
+        {/* <button title="Toggle Theme" onClick={toggleTheme} className="text-lg">
           {theme === "dark" ? "🌙" : "☀️"}
-        </button>
+        </button> */}
+
+        <button onClick={() => setDark(!dark)}>{dark ? "☀️" : "🌙"}</button>
 
         <button
           onClick={handleLogout}

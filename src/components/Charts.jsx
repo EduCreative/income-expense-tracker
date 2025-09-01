@@ -1,187 +1,483 @@
-import React, { useEffect, useState } from "react";
-import { Pie, Bar, Doughnut } from "react-chartjs-2";
+import React, { useEffect, useState, useRef } from "react";
+import { Pie, Bar, Line, Doughnut, PolarArea } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
   Tooltip,
   Legend,
-  Title,
-  BarElement,
   CategoryScale,
   LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title,
 } from "chart.js";
 import { collection, query, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../context/AuthContext";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 ChartJS.register(
   ArcElement,
   Tooltip,
   Legend,
-  Title,
-  BarElement,
   CategoryScale,
-  LinearScale
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title
 );
 
 export default function Charts() {
   const { userData } = useAuth();
-  const [categoryData, setCategoryData] = useState({ income: {}, expense: {} });
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [incomeChartType, setIncomeChartType] = useState("pie");
-  const [expenseChartType, setExpenseChartType] = useState("pie");
+  const [transactions, setTransactions] = useState([]);
+  const [fromDate, setFromDate] = useState(
+    new Date(new Date().setDate(new Date().getDate() - 30))
+      .toISOString()
+      .split("T")[0]
+  );
+  const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // Set default dates: 1 month range
-  useEffect(() => {
-    const today = new Date();
-    const lastMonth = new Date();
-    lastMonth.setMonth(today.getMonth() - 1);
-
-    setToDate(today.toISOString().split("T")[0]);
-    setFromDate(lastMonth.toISOString().split("T")[0]);
-  }, []);
+  // Chart refs for export to PDF
+  const incomeChartRef = useRef(null);
+  const expenseChartRef = useRef(null);
+  const trendChartRef = useRef(null);
+  const comparisonChartRef = useRef(null);
 
   useEffect(() => {
-    if (!userData?.familyID || !fromDate || !toDate) return;
+    if (!userData?.familyID) return;
 
     const q = query(
       collection(db, "families", userData.familyID, "transactions")
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
-      const income = {};
-      const expense = {};
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
-
+      const txs = [];
       snapshot.forEach((doc) => {
-        const tx = doc.data();
-        const txDate = tx.date?.toDate ? tx.date.toDate() : new Date(tx.date);
+        const data = doc.data();
+        let txDate = data.date?.toDate
+          ? data.date.toDate()
+          : new Date(data.date);
 
-        if (txDate >= from && txDate <= to) {
-          const cat = tx.category || "Uncategorized";
-          if (tx.type === "income") {
-            income[cat] = (income[cat] || 0) + tx.amount;
-          } else if (tx.type === "expense") {
-            expense[cat] = (expense[cat] || 0) + tx.amount;
-          }
-        }
+        txs.push({
+          ...data,
+          date: txDate,
+        });
       });
-
-      setCategoryData({ income, expense });
+      setTransactions(txs);
     });
 
     return () => unsub();
-  }, [userData?.familyID, fromDate, toDate]);
+  }, [userData?.familyID]);
 
-  const buildChartData = (dataMap) => {
-    const labels = Object.keys(dataMap);
-    const data = Object.values(dataMap);
+  // Filter and sort transactions
+  const filteredTx = transactions
+    .filter(
+      (tx) => tx.date >= new Date(fromDate) && tx.date <= new Date(toDate)
+    )
+    .sort((a, b) => a.date - b.date);
+
+  // Running balance
+  let runningBalance = 0;
+  const txWithBalance = filteredTx.map((t) => {
+    if (t.type === "income") runningBalance += t.amount;
+    else if (t.type === "expense") runningBalance -= t.amount;
+
     return {
-      labels,
-      datasets: [
-        {
-          label: "Amount",
-          data,
-          backgroundColor: [
-            "#4CAF50",
-            "#F44336",
-            "#2196F3",
-            "#ad850e",
-            "#9C27B0",
-            "#00BCD4",
-            "#fb9700",
-            "#607D8B",
-            "#cf4c76",
-            "#FF7D8F",
-            "#117D8B",
-            "#ffff00",
-          ],
-        },
-      ],
+      ...t,
+      balance: runningBalance,
     };
+  });
+
+  // Aggregations
+  const incomeData = {};
+  const expenseData = {};
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  filteredTx.forEach((tx) => {
+    const cat = tx.category || "Uncategorized";
+    if (tx.type === "income") {
+      incomeData[cat] = (incomeData[cat] || 0) + tx.amount;
+      totalIncome += tx.amount;
+    } else if (tx.type === "expense") {
+      expenseData[cat] = (expenseData[cat] || 0) + tx.amount;
+      totalExpense += tx.amount;
+    }
+  });
+
+  const buildChartData = (dataMap) => ({
+    labels: Object.keys(dataMap),
+    datasets: [
+      {
+        data: Object.values(dataMap),
+        backgroundColor: [
+          "#4CAF50",
+          "#F44336",
+          "#2196F3",
+          "#FF9800",
+          "#9C27B0",
+          "#00BCD4",
+          "#795548",
+          "#E91E63",
+          "#607D8B",
+          "#8BC34A",
+        ],
+      },
+    ],
+  });
+
+  // Trend chart
+  const trendLabels = [
+    ...new Set(filteredTx.map((t) => t.date.toISOString().split("T")[0])),
+  ].sort();
+  const incomeTrend = trendLabels.map((d) =>
+    filteredTx
+      .filter(
+        (t) => t.type === "income" && t.date.toISOString().split("T")[0] === d
+      )
+      .reduce((sum, t) => sum + t.amount, 0)
+  );
+  const expenseTrend = trendLabels.map((d) =>
+    filteredTx
+      .filter(
+        (t) => t.type === "expense" && t.date.toISOString().split("T")[0] === d
+      )
+      .reduce((sum, t) => sum + t.amount, 0)
+  );
+
+  const trendData = {
+    labels: trendLabels,
+    datasets: [
+      {
+        label: "Income",
+        data: incomeTrend,
+        borderColor: "green",
+        fill: true,
+        backgroundColor: "rgba(76,175,80,0.2)",
+      },
+      {
+        label: "Expense",
+        data: expenseTrend,
+        borderColor: "red",
+        fill: true,
+        backgroundColor: "rgba(244,67,54,0.2)",
+      },
+    ],
   };
 
-  const renderChart = (dataMap, chartType) => {
-    if (Object.keys(dataMap).length === 0) {
-      return <p className="text-gray-400">No data available</p>;
+  // Bar comparison
+  const barData = {
+    labels: [
+      ...new Set([...Object.keys(incomeData), ...Object.keys(expenseData)]),
+    ],
+    datasets: [
+      {
+        label: "Income",
+        data: Object.keys(incomeData).map((k) => incomeData[k] || 0),
+        backgroundColor: "rgba(76,175,80,0.6)",
+      },
+      {
+        label: "Expense",
+        data: Object.keys(expenseData).map((k) => expenseData[k] || 0),
+        backgroundColor: "rgba(244,67,54,0.6)",
+      },
+    ],
+  };
+
+  // Helpers
+  const formatDate = (date) =>
+    date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+  const formatAmount = (amt) =>
+    amt ? `Rs. ${amt.toLocaleString("en-IN")}` : "";
+
+  // CSV export
+  const exportCSV = () => {
+    let csv = "Date,Type,Category,Credit,Debit,Balance\n";
+    txWithBalance.forEach((t) => {
+      csv += `${formatDate(t.date)},${t.type},${t.category},${
+        t.type === "income" ? formatAmount(t.amount) : ""
+      },${t.type === "expense" ? formatAmount(t.amount) : ""},${formatAmount(
+        t.balance
+      )}\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions_${fromDate}_to_${toDate}.csv`;
+    a.click();
+  };
+
+  // Excel export
+  const exportExcel = () => {
+    const rows = txWithBalance.map((t) => ({
+      Date: formatDate(t.date),
+      Type: t.type,
+      Category: t.category,
+      Credit: t.type === "income" ? formatAmount(t.amount) : "",
+      Debit: t.type === "expense" ? formatAmount(t.amount) : "",
+      Balance: formatAmount(t.balance),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+    XLSX.writeFile(wb, `transactions_${fromDate}_to_${toDate}.xlsx`);
+  };
+
+  // PDF export
+  const exportPDF = async () => {
+    const doc = new jsPDF();
+    doc.text("Transaction Report", 14, 16);
+
+    autoTable(doc, {
+      startY: 20,
+      head: [["Date", "Type", "Category", "Credit", "Debit", "Balance"]],
+      body: txWithBalance.map((t) => [
+        formatDate(t.date),
+        t.type,
+        t.category,
+        t.type === "income" ? formatAmount(t.amount) : "",
+        t.type === "expense" ? formatAmount(t.amount) : "",
+        formatAmount(t.balance),
+      ]),
+      styles: { fontSize: 9 },
+      didParseCell: (data) => {
+        if (data.row.raw[1] === "income") {
+          data.cell.styles.fontStyle = "bold";
+        }
+      },
+    });
+
+    // Income by Category
+    doc.addPage();
+    doc.text("Income by Category", 14, 16);
+    autoTable(doc, {
+      startY: 20,
+      head: [["Category", "Amount"]],
+      body: Object.entries(incomeData).map(([cat, amt]) => [
+        cat,
+        formatAmount(amt),
+      ]),
+    });
+
+    // Expense by Category
+    doc.addPage();
+    doc.text("Expense by Category", 14, 16);
+    autoTable(doc, {
+      startY: 20,
+      head: [["Category", "Amount"]],
+      body: Object.entries(expenseData).map(([cat, amt]) => [
+        cat,
+        formatAmount(amt),
+      ]),
+    });
+
+    // Charts in PDF
+    const charts = [
+      incomeChartRef.current,
+      expenseChartRef.current,
+      trendChartRef.current,
+      comparisonChartRef.current,
+    ];
+    for (const chart of charts) {
+      if (chart) {
+        doc.addPage();
+        doc.addImage(chart.toBase64Image(), "PNG", 15, 40, 180, 100);
+      }
     }
 
-    const chartData = buildChartData(dataMap);
-    switch (chartType) {
-      case "bar":
-        return <Bar data={chartData} />;
-      case "doughnut":
-        return <Doughnut data={chartData} />;
-      default:
-        return <Pie data={chartData} />;
-    }
+    doc.save(`transactions_${fromDate}_to_${toDate}.pdf`);
+  };
+
+  const balance = totalIncome - totalExpense;
+
+  // Dropdown for charts
+  const [chartType, setChartType] = useState({
+    income: "pie",
+    expense: "pie",
+    trend: "line",
+    comparison: "bar",
+  });
+
+  const chartComponents = {
+    pie: Pie,
+    doughnut: Doughnut,
+    polarArea: PolarArea,
+    bar: Bar,
+    line: Line,
   };
 
   return (
-    <div className="mt-6 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg shadow">
-      <h2 className="text-xl font-bold mb-4 text-center">
-        📊 Category-wise Analysis
-      </h2>
+    <div className="mt-6 bg-white dark:bg-gray-800 p-6 rounded shadow">
+      <h2 className="text-xl font-bold mb-4">Category Insights</h2>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 mb-6 justify-center">
+      {/* Date Filters */}
+      <div className="flex gap-4 mb-4">
         <div>
-          <label className="block text-sm font-medium mb-1">From</label>
+          <label className="text-sm">From:</label>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="border p-2 rounded dark:bg-gray-800 dark:text-white"
+            className="border p-2 rounded ml-2"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">To</label>
+          <label className="text-sm">To:</label>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="border p-2 rounded dark:bg-gray-800 dark:text-white"
+            className="border p-2 rounded ml-2"
           />
+        </div>
+        <button
+          onClick={exportCSV}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Export CSV
+        </button>
+        <button
+          onClick={exportExcel}
+          className="bg-yellow-500 text-white px-4 py-2 rounded"
+        >
+          Export Excel
+        </button>
+        <button
+          onClick={exportPDF}
+          className="bg-green-500 text-white px-4 py-2 rounded"
+        >
+          Export PDF
+        </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-green-100 dark:bg-green-900 p-4 rounded text-center">
+          <h4 className="font-bold">Total Income</h4>
+          <p className="text-lg font-semibold">{formatAmount(totalIncome)}</p>
+        </div>
+        <div className="bg-red-100 dark:bg-red-900 p-4 rounded text-center">
+          <h4 className="font-bold">Total Expense</h4>
+          <p className="text-lg font-semibold">{formatAmount(totalExpense)}</p>
+        </div>
+        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded text-center">
+          <h4 className="font-bold">Balance</h4>
+          <p className="text-lg font-semibold">{formatAmount(balance)}</p>
         </div>
       </div>
 
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Income Chart */}
-        <div className="bg-white p-4 rounded shadow dark:bg-gray-800">
+        <div className="p-4 rounded shadow bg-white dark:bg-gray-700">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-bold">Income by Category</h3>
+            <h3 className="font-bold">Income by Category</h3>
             <select
-              value={incomeChartType}
-              onChange={(e) => setIncomeChartType(e.target.value)}
-              className="border p-1 rounded text-sm dark:bg-gray-700 dark:text-white"
+              value={chartType.income}
+              onChange={(e) =>
+                setChartType({ ...chartType, income: e.target.value })
+              }
+              className="border p-1 rounded"
             >
               <option value="pie">Pie</option>
-              <option value="bar">Bar</option>
               <option value="doughnut">Doughnut</option>
+              <option value="polarArea">Polar Area</option>
             </select>
           </div>
-          {renderChart(categoryData.income, incomeChartType)}
+          {Object.keys(incomeData).length > 0 ? (
+            React.createElement(chartComponents[chartType.income], {
+              data: buildChartData(incomeData),
+              ref: incomeChartRef,
+            })
+          ) : (
+            <p>No income data</p>
+          )}
         </div>
 
-        {/* Expense Chart */}
-        <div className="bg-white p-4 rounded shadow dark:bg-gray-800">
+        <div className="p-4 rounded shadow bg-white dark:bg-gray-700">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-bold">Expense by Category</h3>
+            <h3 className="font-bold">Expense by Category</h3>
             <select
-              value={expenseChartType}
-              onChange={(e) => setExpenseChartType(e.target.value)}
-              className="border p-1 rounded text-sm dark:bg-gray-700 dark:text-white"
+              value={chartType.expense}
+              onChange={(e) =>
+                setChartType({ ...chartType, expense: e.target.value })
+              }
+              className="border p-1 rounded"
             >
               <option value="pie">Pie</option>
-              <option value="bar">Bar</option>
               <option value="doughnut">Doughnut</option>
+              <option value="polarArea">Polar Area</option>
             </select>
           </div>
-          {renderChart(categoryData.expense, expenseChartType)}
+          {Object.keys(expenseData).length > 0 ? (
+            React.createElement(chartComponents[chartType.expense], {
+              data: buildChartData(expenseData),
+              ref: expenseChartRef,
+            })
+          ) : (
+            <p>No expense data</p>
+          )}
         </div>
+      </div>
+
+      {/* Trend Line */}
+      <div className="p-4 rounded shadow bg-white dark:bg-gray-700 mt-6">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-bold">Trend Over Time</h3>
+          <select
+            value={chartType.trend}
+            onChange={(e) =>
+              setChartType({ ...chartType, trend: e.target.value })
+            }
+            className="border p-1 rounded"
+          >
+            <option value="line">Line</option>
+            <option value="bar">Bar</option>
+          </select>
+        </div>
+        {trendLabels.length > 0 ? (
+          React.createElement(chartComponents[chartType.trend], {
+            data: trendData,
+            ref: trendChartRef,
+          })
+        ) : (
+          <p>No trend data</p>
+        )}
+      </div>
+
+      {/* Comparison */}
+      <div className="p-4 rounded shadow bg-white dark:bg-gray-700 mt-6">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-bold">Income vs Expense by Category</h3>
+          <select
+            value={chartType.comparison}
+            onChange={(e) =>
+              setChartType({ ...chartType, comparison: e.target.value })
+            }
+            className="border p-1 rounded"
+          >
+            <option value="bar">Bar</option>
+            <option value="line">Line</option>
+          </select>
+        </div>
+        {Object.keys(incomeData).length > 0 ||
+        Object.keys(expenseData).length > 0 ? (
+          React.createElement(chartComponents[chartType.comparison], {
+            data: barData,
+            ref: comparisonChartRef,
+          })
+        ) : (
+          <p>No comparison data</p>
+        )}
       </div>
     </div>
   );

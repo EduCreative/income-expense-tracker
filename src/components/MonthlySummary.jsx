@@ -123,7 +123,7 @@ export default function MonthlySummary() {
           />
         </div>
 
-        <div>
+        {/* <div>
           <label className="block font-semibold dark:bg-gray-800 rounded">
             Select Category:
           </label>
@@ -139,7 +139,7 @@ export default function MonthlySummary() {
               </option>
             ))}
           </select>
-        </div>
+        </div> */}
 
         <div>
           <label className="block font-semibold dark:bg-gray-800 rounded">
